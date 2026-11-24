@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PII Detection & Encryption (SVM)</title>
+  <style>
+    :root {
+      --bg-page: #f0f4f8;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --dashed-border: #c8d6e5;
+      --box-bg: #eef4f9;
+      --text-dark: #1e293b;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --btn-coral: #e05656;
+      --btn-coral-hover: #cf4747;
+      --btn-blue: #3b82f6;
+      --btn-blue-hover: #2563eb;
+      --badge-bg: #e2e8f0;
+      --badge-text: #475569;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    /* Top Floating Pill Toggle */
+    .pill-tabs {
+      display: inline-flex;
+      background: #e2e8f0;
+      border-radius: 30px;
+      padding: 4px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .pill-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 26px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+
+    .pill-tab.active {
+      background: #ffffff;
+      color: var(--text-dark);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .pill-tab svg {
+      width: 15px;
+      height: 15px;
+      fill: currentColor;
+    }
+
+    /* Main Container Card */
+    .main-card {
+      max-width: 1050px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+      display: grid;
+      grid-template-columns: 46% 54%;
+      gap: 20px;
+    }
+
+    @media (max-width: 860px) {
+      .main-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Column */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Top Dashed Box */
+    .dashed-box {
+      border: 2px dashed var(--dashed-border);
+      background: var(--box-bg);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s;
+    }
+
+    .dashed-box:focus-within {
+      border-color: #94a3b8;
+    }
+
+    .box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .box-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .file-upload-btn {
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .file-upload-btn:hover {
+      background: #f1f5f9;
+      color: var(--text-dark);
+    }
+
+    textarea.text-input {
+      width: 100%;
+      height: 125px;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: vertical;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--text-dark);
+    }
+
+    textarea.text-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .chips-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip-btn:hover {
+      background: #e2e8f0;
+      color: var(--text-dark);
+    }
+
+    /* Bottom Settings Box */
+    .settings-box {
+      border: 1px solid #e1e9f2;
+      background: var(--box-bg);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .settings-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .key-input-container {
+      width: 80%;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 7px 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .key-input-container input {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text-dark);
+      background: transparent;
+    }
+
+    .key-action-icon {
+      cursor: pointer;
+      color: #94a3b8;
+      font-size: 14px;
+      padding-left: 6px;
+      user-select: none;
+    }
+
+    .key-action-icon:hover {
+      color: var(--text-dark);
+    }
+
+    /* Mini status badges */
+    .mini-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .mini-badge {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .mini-badge span {
+      color: #0284c7;
+      font-weight: 700;
+    }
+
+    .caption-mode {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.4;
+      max-width: 90%;
+    }
+
+    /* Big Action Button */
+    .btn-action-primary {
+      background: var(--btn-coral);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 36px;
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(224, 86, 86, 0.25);
+    }
+
+    .btn-action-primary:hover {
+      background: var(--btn-coral-hover);
+    }
+
+    .btn-action-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-action-primary.decrypt-mode {
+      background: var(--btn-blue);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    }
+
+    .btn-action-primary.decrypt-mode:hover {
+      background: var(--btn-blue-hover);
+    }
+
+    /* Right Column (Result Container) */
+    .right-col {
+      border: 1px solid #e2e8f0;
+      background: #fafbfc;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 440px;
+    }
+
+    /* Empty state */
+    .empty-result {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-light);
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    /* Active Result View */
+    .result-content {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      height: 100%;
+    }
+
+    .result-section-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .tags-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 90px;
+      overflow-y: auto;
+    }
+
+    .pii-tag {
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .pii-tag span.score {
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 1px 4px;
+      border-radius: 8px;
+    }
+
+    .result-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      word-break: break-all;
+      color: var(--text-dark);
+      max-height: 130px;
+      overflow-y: auto;
+    }
+
+    .result-box.cipher {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #0369a1;
+      background: #f8fafc;
+    }
+
+    .copy-link {
+      color: #0284c7;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .copy-link:hover {
+      text-decoration: underline;
+    }
+
+    .fidelity-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: #16a34a;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Pill Tab Switcher -->
+  <div class="pill-tabs">
+    <button class="pill-tab active" id="tabEncrypt" onclick="setMode('encrypt')">
+      <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+      ENCRYPT PII
+    </button>
+    <button class="pill-tab" id="tabDecrypt" onclick="setMode('decrypt')">
+      <svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5-2.28 0-4.27 1.54-4.84 3.75-.14.54.18 1.08.72 1.23.53.14 1.08-.18 1.22-.72C9.46 3.85 10.64 3 12 3c1.66 0 3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>
+      DECRYPT TEXT
+    </button>
+  </div>
+
+  <!-- Main 2-Column Card -->
+  <div class="main-card">
+
+    <!-- Left Column -->
+    <div class="left-col">
+
+      <!-- Top Dashed Box: Text Area & File Load -->
+      <div class="dashed-box">
+        <div class="box-header">
+          <span class="box-label" id="boxTitle">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            ADD / ENTER TEXT
+          </span>
+          <label class="file-upload-btn" title="Upload .txt file">
+            Upload .txt
+            <input type="file" id="fileUpload" accept=".txt" style="display:none;" onchange="handleFileUpload(event)">
+          </label>
+        </div>
+
+        <textarea class="text-input" id="inputText" placeholder="Click or paste text here to detect important PII words and encrypt them..."></textarea>
+
+        <div class="chips-row">
+          <button class="chip-btn" onclick="loadSample(1)">Sample: Full Profile</button>
+          <button class="chip-btn" onclick="loadSample(2)">Sample: Developer</button>
+          <button class="chip-btn" onclick="loadSample(3)">Sample: Address/Phone</button>
+          <button class="chip-btn" onclick="clearInput()" style="margin-left:auto;">Clear</button>
+        </div>
+      </div>
+
+      <!-- Bottom Settings Box: Key, Badges, and Red Action Button -->
+      <div class="settings-box">
+        <div class="settings-title">SET PASSWORD (KEY)</div>
+
+        <div class="key-input-container">
+          <input type="text" id="keyInput" value="ABC123" placeholder="Enter key or password">
+          <span class="key-action-icon" title="Generate random password" onclick="generateRandomKey()">🎲</span>
+          <span class="key-action-icon" title="Copy key" onclick="copyKey()">📋</span>
+        </div>
+
+        <div class="mini-badges">
+          <div class="mini-badge">Names: <span id="statNames">--</span></div>
+          <div class="mini-badge">Phones: <span id="statPhones">--</span></div>
+          <div class="mini-badge">Emails: <span id="statEmails">--</span></div>
+          <div class="mini-badge">Addresses: <span id="statAddresses">--</span></div>
+        </div>
+
+        <div class="caption-mode" id="captionText">
+          SVM Mode: Evaluates text tokens, detects PII entities & encrypts with AES-256
+        </div>
+
+        <button class="btn-action-primary" id="btnAction" onclick="handleAction()">
+          ENCRYPT PII
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Right Column (Result Container) -->
+    <div class="right-col">
+      <!-- Empty State -->
+      <div class="empty-result" id="emptyState">
+        Result will appear here
+      </div>
+
+      <!-- Active Content View -->
+      <div class="result-content" id="resultContent">
+
+        <!-- 1. Detected Words -->
+        <div id="sectionDetected">
+          <div class="result-section-title">
+            <span>Detected Important (PII) Words</span>
+            <span id="detectedCountText" style="color:#0284c7;font-weight:700;">0 words</span>
+          </div>
+          <div class="tags-cloud" id="tagsCloud"></div>
+        </div>
+
+        <!-- 2. Encrypted Result -->
+        <div>
+          <div class="result-section-title">
+            <span id="lblResultBox1">Encrypted String (AES-256)</span>
+            <a class="copy-link" onclick="copyResultText()">Copy</a>
+          </div>
+          <div class="result-box cipher" id="resultBox1"></div>
+        </div>
+
+        <!-- 3. Decrypted Verification -->
+        <div>
+          <div class="result-section-title">
+            <span>Decrypted Verification</span>
+            <span class="fidelity-tag" id="fidelityTag">✓ 100% Match</span>
+          </div>
+          <div class="result-box" id="resultBox2"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentMode = 'encrypt';
+    let lastEncryptedText = '';
+    let lastDecryptedText = '';
+
+    const SAMPLES = {
+      1: "My name is Aaliyah Popova, please reach me by phone at (95) 94215-7906 or by email at aaliyah.popova4783@aol.edu. My studio is located at 97 Lincoln Street.",
+      2: "Hello, I am Konstantin Becker and my email address is konstantin.becker@gmail.com. Feel free to contact me.",
+      3: "You can visit my office at 826 Webster Street or call 0475 4429797 anytime."
+    };
+
+    function setMode(mode) {
+      currentMode = mode;
+      const tabEnc = document.getElementById('tabEncrypt');
+      const tabDec = document.getElementById('tabDecrypt');
+      const btnAction = document.getElementById('btnAction');
+      const caption = document.getElementById('captionText');
+      const boxTitle = document.getElementById('boxTitle');
+
+      if (mode === 'encrypt') {
+        tabEnc.classList.add('active');
+        tabDec.classList.remove('active');
+        btnAction.innerText = 'ENCRYPT PII';
+        btnAction.classList.remove('decrypt-mode');
+        boxTitle.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> ADD / ENTER TEXT';
+        caption.innerText = 'SVM Mode: Evaluates text tokens, detects PII entities & encrypts with AES-256';
+      } else {
+        tabDec.classList.add('active');
+        tabEnc.classList.remove('active');
+        btnAction.innerText = 'DECRYPT TEXT';
+        btnAction.classList.add('decrypt-mode');
+        boxTitle.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5-2.28 0-4.27 1.54-4.84 3.75-.14.54.18 1.08.72 1.23.53.14 1.08-.18 1.22-.72C9.46 3.85 10.64 3 12 3c1.66 0 3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg> PASTE ENCRYPTED TEXT';
+        caption.innerText = 'Decryption Mode: Restores original plaintext from cipher tokens using your key';
+        if (lastEncryptedText) {
+          document.getElementById('inputText').value = lastEncryptedText;
+        }
+      }
+    }
+
+    function loadSample(num) {
+      document.getElementById('inputText').value = SAMPLES[num];
+    }
+
+    function clearInput() {
+      document.getElementById('inputText').value = '';
+    }
+
+    function generateRandomKey() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let key = '';
+      for (let i = 0; i < 6; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('keyInput').value = key;
+    }
+
+    function copyKey() {
+      const k = document.getElementById('keyInput').value;
+      navigator.clipboard.writeText(k);
+      alert('Key copied: ' + k);
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('inputText').value = e.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    async function handleAction() {
+      if (currentMode === 'encrypt') {
+        await executeEncrypt();
+      } else {
+        await executeDecrypt();
+      }
+    }
+
+    async function executeEncrypt() {
+      const text = document.getElementById('inputText').value.trim();
+      const password = document.getElementById('keyInput').value.trim();
+
+      if (!text) {
+        alert('Please enter or paste text to encrypt.');
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, password })
+        });
+        const data = await resp.json();
+
+        lastEncryptedText = data.encrypted_text || '';
+        lastDecryptedText = data.decrypted_text || '';
+
+        // Show result panel
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('resultContent').style.display = 'flex';
+        document.getElementById('sectionDetected').style.display = 'block';
+
+        // Update stats
+        if (data.stats) {
+          document.getElementById('statNames').innerText = data.stats.names || 0;
+          document.getElementById('statPhones').innerText = data.stats.phones || 0;
+          document.getElementById('statEmails').innerText = data.stats.emails || 0;
+          document.getElementById('statAddresses').innerText = data.stats.addresses || 0;
+        }
+
+        // Render tags
+        const tagsBox = document.getElementById('tagsCloud');
+        tagsBox.innerHTML = '';
+        if (data.important_words && data.important_words.length > 0) {
+          document.getElementById('detectedCountText').innerText = `${data.important_words.length} words`;
+          data.important_words.forEach(item => {
+            const span = document.createElement('span');
+            span.className = 'pii-tag';
+            span.innerHTML = `${escapeHtml(item.word)} <span class="score">${item.confidence.toFixed(2)}</span>`;
+            tagsBox.appendChild(span);
+          });
+        } else {
+          document.getElementById('detectedCountText').innerText = '0 words';
+          tagsBox.innerHTML = '<span style="color:#94a3b8;font-size:12px;">No PII words detected in this input.</span>';
+        }
+
+        // Populate boxes
+        document.getElementById('lblResultBox1').innerText = 'Encrypted String (AES-256)';
+        document.getElementById('resultBox1').innerText = lastEncryptedText;
+
+        document.getElementById('resultBox2').innerText = lastDecryptedText;
+        const tag = document.getElementById('fidelityTag');
+        if (lastDecryptedText === data.original_text) {
+          tag.innerText = '✓ 100% Round-trip Match';
+          tag.style.color = '#16a34a';
+        } else {
+          tag.innerText = 'Notice: Check key';
+          tag.style.color = '#eab308';
+        }
+      } catch (err) {
+        alert('Server communication error: ' + err);
+      }
+    }
+
+    async function executeDecrypt() {
+      const text = document.getElementById('inputText').value.trim();
+      const password = document.getElementById('keyInput').value.trim();
+
+      if (!text) {
+        alert('Please enter or paste encrypted text to decrypt.');
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/decrypt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, password })
+        });
+        const data = await resp.json();
+
+        lastDecryptedText = data.decrypted_text || '';
+
+        // Show result panel
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('resultContent').style.display = 'flex';
+        document.getElementById('sectionDetected').style.display = 'none';
+
+        document.getElementById('lblResultBox1').innerText = 'Input Ciphertext';
+        document.getElementById('resultBox1').innerText = text;
+
+        document.getElementById('resultBox2').innerText = lastDecryptedText;
+        document.getElementById('fidelityTag').innerText = '✓ Plaintext Restored';
+      } catch (err) {
+        alert('Server communication error: ' + err);
+      }
+    }
+
+    function copyResultText() {
+      if (!lastEncryptedText) return;
+      navigator.clipboard.writeText(lastEncryptedText);
+      alert('Encrypted string copied to clipboard!');
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.innerText = str;
+      return d.innerHTML;
+    }
+
+    // Preload sample 1
+    window.onload = function() {
+      loadSample(1);
+    };
+  </script>
+
+</body>
+</html>
